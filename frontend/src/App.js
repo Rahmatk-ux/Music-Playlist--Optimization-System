@@ -15,7 +15,7 @@ function App() {
         <div className="header-icon">🎵</div>
         <div className="header-content">
           <h1>Music Playlist Optimizer</h1>
-          <p>AI-Powered Smart Playlist Generation Using Graph Algorithms</p>
+          <p>Smart Playlist Generation Using Graph Algorithms</p>
         </div>
       </header>
 

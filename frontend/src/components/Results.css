@@ -25,7 +25,6 @@
   margin: 0;
 }
 
-/* No Results State */
 .no-results {
   display: flex;
   flex-direction: column;
@@ -52,7 +51,6 @@
   font-size: 16px;
 }
 
-/* Summary Cards */
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -80,7 +78,6 @@
   opacity: 0.9;
 }
 
-/* Tabs */
 .results-tabs {
   display: flex;
   gap: 10px;
@@ -114,7 +111,6 @@
   border-bottom-color: #667eea;
 }
 
-/* Playlist View */
 .playlist-view {
   display: flex;
   flex-direction: column;
@@ -198,7 +194,6 @@
   color: #f44336;
 }
 
-/* Graph View */
 .graph-view {
   padding: 40px 20px;
 }
@@ -250,7 +245,6 @@
   margin-bottom: 5px;
 }
 
-/* Scrollbar Styling */
 .playlist-view::-webkit-scrollbar,
 .song-selection-list::-webkit-scrollbar {
   width: 8px;

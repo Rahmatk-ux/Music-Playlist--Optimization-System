@@ -7,15 +7,11 @@ using namespace std;
 
 const double INF = numeric_limits<double>::infinity();
 
-// Constructor
 TSP::TSP(Graph* g) {
     this->graph = g;
     this->numVertices = g->getNumVertices();
 }
 
-// Greedy TSP - Nearest Neighbor Heuristic
-// Time Complexity: O(V^2)
-// Space Complexity: O(V)
 vector<int> TSP::greedyTSP(int startVertex) {
     vector<int> tour;
     vector<bool> visited(numVertices, false);
@@ -24,12 +20,10 @@ vector<int> TSP::greedyTSP(int startVertex) {
     tour.push_back(current);
     visited[current] = true;
     
-    // Visit all vertices
     for (int i = 1; i < numVertices; i++) {
         double minWeight = INF;
         int nearestVertex = -1;
         
-        // Find nearest unvisited neighbor
         for (int v = 0; v < numVertices; v++) {
             if (!visited[v]) {
                 double weight = graph->getWeight(current, v);
@@ -50,7 +44,6 @@ vector<int> TSP::greedyTSP(int startVertex) {
     return tour;
 }
 
-// Calculate total tour cost
 double TSP::getTourCost(vector<int> tour) {
     double totalCost = 0.0;
     
@@ -61,7 +54,6 @@ double TSP::getTourCost(vector<int> tour) {
     return totalCost;
 }
 
-// Print TSP results
 void TSP::printResults(int startVertex) {
     cout << "\n=== Greedy TSP (Nearest Neighbor) Results ===" << endl;
     cout << "Start Vertex: " << startVertex 

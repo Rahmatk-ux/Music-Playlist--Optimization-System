@@ -27,7 +27,6 @@ function Results({ results, songs, algorithm }) {
         <h2>Results</h2>
       </div>
 
-      {/* Summary Cards */}
       <div className="summary-cards">
         <div className="summary-card">
           <div className="card-value">{results.songCount}</div>
@@ -43,7 +42,6 @@ function Results({ results, songs, algorithm }) {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="results-tabs">
         <button 
           className={`tab ${activeTab === 'playlist' ? 'active' : ''}`}
@@ -59,7 +57,6 @@ function Results({ results, songs, algorithm }) {
         </button>
       </div>
 
-      {/* Tab Content */}
       {activeTab === 'playlist' && (
         <div className="playlist-view">
           {results.playlist.map((song, index) => (

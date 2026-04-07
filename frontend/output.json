@@ -1,0 +1,16 @@
+{
+  "algorithm":"mst",
+  "songCount":8,
+  "totalCost":190.8,
+  "avgCost":27.3,
+  "playlist":[
+    {"id":29,"title":"Titanium","artist":"David Guetta ft Sia","album":"Nothing but the Beat","bpm":126,"energy":78,"valence":0.4,"genre":"EDM","year":2011,"transitionCost":0.0},
+    {"id":44,"title":"Little Talks","artist":"Of Monsters and Men","album":"My Head Is an Animal","bpm":103,"energy":81,"valence":0.5,"genre":"Indie Pop","year":2011,"transitionCost":23.3},
+    {"id":43,"title":"Ho Hey","artist":"The Lumineers","album":"The Lumineers","bpm":80,"energy":55,"valence":0.7,"genre":"Indie Folk","year":2012,"transitionCost":35.5},
+    {"id":47,"title":"Stairway to Heaven","artist":"Led Zeppelin","album":"Led Zeppelin IV","bpm":82,"energy":44,"valence":0.3,"genre":"Rock","year":1971,"transitionCost":11.2},
+    {"id":23,"title":"Mad World","artist":"Gary Jules","album":"Donnie Darko OST","bpm":82,"energy":19,"valence":0.1,"genre":"Alternative","year":2001,"transitionCost":25.0},
+    {"id":39,"title":"All of Me","artist":"John Legend","album":"Love in the Future","bpm":120,"energy":39,"valence":0.6,"genre":"R&B","year":2013,"transitionCost":42.9},
+    {"id":13,"title":"Viva La Vida","artist":"Coldplay","album":"Viva la Vida","bpm":138,"energy":56,"valence":0.4,"genre":"Alternative Rock","year":2008,"transitionCost":24.8},
+    {"id":34,"title":"Lose Yourself","artist":"Eminem","album":"8 Mile OST","bpm":171,"energy":88,"valence":0.4,"genre":"Hip Hop","year":2002,"transitionCost":46.0}
+  ]
+}

@@ -19,7 +19,6 @@ body {
   padding: 20px;
 }
 
-/* Header */
 .app-header {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 20px;
@@ -46,7 +45,7 @@ body {
   color: #666;
 }
 
-/* Main Container */
+
 .main-container {
   display: grid;
   grid-template-columns: 400px 1fr;
@@ -58,4 +57,5 @@ body {
   .main-container {
     grid-template-columns: 1fr;
   }
+
 }

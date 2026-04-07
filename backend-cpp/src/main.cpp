@@ -1,7 +1,11 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <algorithm>
+#include <iomanip>
+
 #include <random>
+#include <sstream>
 #include "SongDatabase.h"
 #include "Graph.h"
 #include "Dijkstra.h"
@@ -82,239 +86,273 @@ vector<Song> songDatabase = {
     {50, "Smells Like Teen Spirit", "Nirvana", "Nevermind", 117, 0.91, 0.56, "Grunge", 1991}
 };
 
-// Function to get random sample of songs
-vector<Song> getRandomSongs(int count) {
-    vector<Song> allSongs = songDatabase;
-    
-    // Shuffle
-    random_device rd;
-    mt19937 g(rd());
-    shuffle(allSongs.begin(), allSongs.end(), g);
-    
-    // Take first 'count' songs
-    vector<Song> sample(allSongs.begin(), allSongs.begin() + min(count, (int)allSongs.size()));
-    return sample;
+void writeJSONArray(ofstream& file, const vector<int>& arr) {
+    file << "[";
+    for (size_t i = 0; i < arr.size(); i++) {
+        file << arr[i];
+        if (i < arr.size() - 1) file << ",";
+    }
+    file << "]";
 }
 
-// Function to get songs by mood
-vector<Song> getSongsByMood(string mood) {
-    vector<Song> filtered;
+void writeSongJSON(ofstream& file, const Song& song, double transitionCost = -1) {
+    file << "{";
+    file << "\"id\":" << song.id << ",";
+    file << "\"title\":\"" << song.title << "\",";
+    file << "\"artist\":\"" << song.artist << "\",";
+    file << "\"album\":\"" << song.album << "\",";
+    file << "\"bpm\":" << song.bpm << ",";
+    file << "\"energy\":" << (int)(song.energy * 100) << ",";
+    file << "\"valence\":" << song.valence << ",";
+    file << "\"genre\":\"" << song.genre << "\",";
+    file << "\"year\":" << song.year;
+    if (transitionCost >= 0) {
+        file << ",\"transitionCost\":" << fixed << setprecision(1) << transitionCost;
+    }
+    file << "}";
+}
+
+void exportAllSongsJSON(const string& filename) {
+    ofstream file(filename);
+    if (!file.is_open()) {
+        cerr << "Error: Could not create file " << filename << endl;
+        return;
+    }
+
+    file << "{\"songs\":[";
+    for (size_t i = 0; i < songDatabase.size(); i++) {
+        writeSongJSON(file, songDatabase[i]);
+        if (i < songDatabase.size() - 1) file << ",";
+    }
+    file << "]}";
+
+    file.close();
+    cout << "✅ Exported " << songDatabase.size() << " songs to " << filename << endl;
+}
+
+vector<int> readSongIdsFromJSON(const string& filename) {
+    vector<int> ids;
+    ifstream file(filename);
+    if (!file.is_open()) {
+        cerr << "Error: Could not open " << filename << endl;
+        return ids;
+    }
+
+    string line;
+    bool inSongIds = false;
     
-    for (const Song& song : songDatabase) {
-        if (mood == "high" && song.energy > 0.7) {
-            filtered.push_back(song);
-        } else if (mood == "medium" && song.energy >= 0.4 && song.energy <= 0.7) {
-            filtered.push_back(song);
-        } else if (mood == "low" && song.energy < 0.4) {
-            filtered.push_back(song);
-        } else if (mood == "party" && song.energy > 0.7 && song.valence > 0.6) {
-            filtered.push_back(song);
-        } else if (mood == "chill" && song.energy < 0.5) {
-            filtered.push_back(song);
+    while (getline(file, line)) {
+        if (line.find("\"songIds\"") != string::npos) {
+            inSongIds = true;
+            size_t start = line.find('[');
+            size_t end = line.find(']');
+            if (start != string::npos && end != string::npos) {
+                string arrayContent = line.substr(start + 1, end - start - 1);
+                stringstream ss(arrayContent);
+                string item;
+                while (getline(ss, item, ',')) {
+                    // Remove whitespace
+                    item.erase(remove_if(item.begin(), item.end(), ::isspace), item.end());
+                    if (!item.empty()) {
+                        ids.push_back(stoi(item));
+                    }
+                }
+            }
+            break;
         }
     }
-    
-    // Shuffle and take first 15
-    random_device rd;
-    mt19937 g(rd());
-    shuffle(filtered.begin(), filtered.end(), g);
-    
-    if (filtered.size() > 15) {
-        filtered.resize(15);
+
+    file.close();
+    return ids;
+}
+
+struct RequestParams {
+    string algorithm;
+    vector<int> songIds;
+    int startSongId;
+    int endSongId;
+};
+
+RequestParams readRequestJSON(const string& filename) {
+    RequestParams params;
+    params.algorithm = "dijkstra";
+    params.startSongId = 1;
+    params.endSongId = 1;
+
+    ifstream file(filename);
+    if (!file.is_open()) {
+        cerr << "Error: Could not open " << filename << endl;
+        return params;
     }
-    
-    return filtered;
+
+    string content((istreambuf_iterator<char>(file)), istreambuf_iterator<char>());
+    file.close();
+
+    size_t algPos = content.find("\"algorithm\"");
+    if (algPos != string::npos) {
+        size_t q1 = content.find("\"", algPos + 11);
+        size_t q2 = content.find("\"", q1 + 1);
+        if (q1 != string::npos && q2 != string::npos)
+            params.algorithm = content.substr(q1 + 1, q2 - q1 - 1);
+    }
+
+    size_t arrStart = content.find("\"songIds\"");
+    if (arrStart != string::npos) {
+        size_t bracketOpen  = content.find("[", arrStart);
+        size_t bracketClose = content.find("]", bracketOpen);
+        if (bracketOpen != string::npos && bracketClose != string::npos) {
+            string arrayContent = content.substr(bracketOpen + 1, bracketClose - bracketOpen - 1);
+            stringstream ss(arrayContent);
+            string item;
+            while (getline(ss, item, ',')) {
+                item.erase(remove_if(item.begin(), item.end(), ::isspace), item.end());
+                if (!item.empty())
+                    params.songIds.push_back(stoi(item));
+            }
+        }
+    }
+
+    auto parseIntField = [&](const string& fieldName) -> int {
+        size_t pos = content.find("\"" + fieldName + "\"");
+        if (pos == string::npos) return 1;
+        size_t colon = content.find(":", pos);
+        if (colon == string::npos) return 1;
+        // Extract digits only
+        string numStr = "";
+        for (size_t i = colon + 1; i < content.size(); i++) {
+            char c = content[i];
+            if (isdigit(c)) numStr += c;
+            else if (!numStr.empty()) break;
+        }
+        return numStr.empty() ? 1 : stoi(numStr);
+    };
+
+    params.startSongId = parseIntField("startSongId");
+    params.endSongId   = parseIntField("endSongId");
+
+    return params;
 }
 
-// Display menu
-void displayMenu() {
-    cout << "\n╔════════════════════════════════════════════╗" << endl;
-    cout << "║   Music Playlist Optimizer (C++)          ║" << endl;
-    cout << "║   Graph Algorithms Implementation          ║" << endl;
-    cout << "╚════════════════════════════════════════════╝" << endl;
-    cout << "\n1. Load Random Songs (10)" << endl;
-    cout << "2. Load Mood-Based Playlist" << endl;
-    cout << "3. Run Dijkstra's Algorithm" << endl;
-    cout << "4. Run Greedy TSP" << endl;
-    cout << "5. Run Prim's MST" << endl;
-    cout << "6. Compare All Algorithms" << endl;
-    cout << "7. Exit" << endl;
-    cout << "\nEnter choice: ";
-}
+void runAlgorithmAndExport(const RequestParams& params, const string& outputFile) {
+    // Get selected songs
+    vector<Song> selectedSongs;
+    for (int id : params.songIds) {
+        for (const Song& song : songDatabase) {
+            if (song.id == id) {
+                selectedSongs.push_back(song);
+                break;
+            }
+        }
+    }
 
-int main() {
-    vector<Song> currentPlaylist;
-    Graph* graph = nullptr;
+    if (selectedSongs.empty()) {
+        cerr << "Error: No songs selected!" << endl;
+        return;
+    }
+
+    cout << "\n🎵 Running " << params.algorithm << " algorithm..." << endl;
+    cout << "Selected songs: " << selectedSongs.size() << endl;
+
+    // Build graph
+    Graph graph(selectedSongs);
+    graph.buildGraph();
+
     int startVertex = 0;
-    
-    cout << "\n🎵 Music Playlist Optimizer Started! 🎵" << endl;
-    cout << "Total songs in database: " << songDatabase.size() << endl;
-    
-    while (true) {
-        displayMenu();
-        
-        int choice;
-        cin >> choice;
-        
-        switch (choice) {
-            case 1: {
-                cout << "\nLoading 10 random songs..." << endl;
-                currentPlaylist = getRandomSongs(10);
-                
-                cout << "\n✅ Songs Loaded:" << endl;
-                for (size_t i = 0; i < currentPlaylist.size(); i++) {
-                    cout << (i + 1) << ". " << currentPlaylist[i].title 
-                         << " - " << currentPlaylist[i].artist << endl;
-                }
-                
-                // Build graph
-                if (graph != nullptr) delete graph;
-                graph = new Graph(currentPlaylist);
-                graph->buildGraph();
-                
-                cout << "\n✅ Graph built successfully!" << endl;
-                break;
-            }
-            
-            case 2: {
-                cout << "\nChoose mood:" << endl;
-                cout << "1. High Energy" << endl;
-                cout << "2. Medium Energy" << endl;
-                cout << "3. Low Energy" << endl;
-                cout << "4. Party" << endl;
-                cout << "5. Chill" << endl;
-                cout << "Enter choice: ";
-                
-                int moodChoice;
-                cin >> moodChoice;
-                
-                string mood;
-                switch (moodChoice) {
-                    case 1: mood = "high"; break;
-                    case 2: mood = "medium"; break;
-                    case 3: mood = "low"; break;
-                    case 4: mood = "party"; break;
-                    case 5: mood = "chill"; break;
-                    default: mood = "medium";
-                }
-                
-                currentPlaylist = getSongsByMood(mood);
-                
-                cout << "\n✅ " << currentPlaylist.size() << " songs loaded for mood: " << mood << endl;
-                for (size_t i = 0; i < currentPlaylist.size(); i++) {
-                    cout << (i + 1) << ". " << currentPlaylist[i].title 
-                         << " - " << currentPlaylist[i].artist << endl;
-                }
-                
-                // Build graph
-                if (graph != nullptr) delete graph;
-                graph = new Graph(currentPlaylist);
-                graph->buildGraph();
-                
-                cout << "\n✅ Graph built successfully!" << endl;
-                break;
-            }
-            
-            case 3: {
-                if (graph == nullptr) {
-                    cout << "\n❌ Please load songs first!" << endl;
-                    break;
-                }
-                
-                cout << "\nEnter start song index (0-" << (currentPlaylist.size() - 1) << "): ";
-                cin >> startVertex;
-                
-                if (startVertex < 0 || startVertex >= (int)currentPlaylist.size()) {
-                    cout << "❌ Invalid index!" << endl;
-                    break;
-                }
-                
-                Dijkstra dijkstra(graph);
-                dijkstra.printResults(startVertex);
-                break;
-            }
-            
-            case 4: {
-                if (graph == nullptr) {
-                    cout << "\n❌ Please load songs first!" << endl;
-                    break;
-                }
-                
-                cout << "\nEnter start song index (0-" << (currentPlaylist.size() - 1) << "): ";
-                cin >> startVertex;
-                
-                if (startVertex < 0 || startVertex >= (int)currentPlaylist.size()) {
-                    cout << "❌ Invalid index!" << endl;
-                    break;
-                }
-                
-                TSP tsp(graph);
-                tsp.printResults(startVertex);
-                break;
-            }
-            
-            case 5: {
-                if (graph == nullptr) {
-                    cout << "\n❌ Please load songs first!" << endl;
-                    break;
-                }
-                
-                cout << "\nEnter start song index (0-" << (currentPlaylist.size() - 1) << "): ";
-                cin >> startVertex;
-                
-                if (startVertex < 0 || startVertex >= (int)currentPlaylist.size()) {
-                    cout << "❌ Invalid index!" << endl;
-                    break;
-                }
-                
-                MST mst(graph);
-                mst.printResults(startVertex);
-                break;
-            }
-            
-            case 6: {
-                if (graph == nullptr) {
-                    cout << "\n❌ Please load songs first!" << endl;
-                    break;
-                }
-                
-                cout << "\nEnter start song index (0-" << (currentPlaylist.size() - 1) << "): ";
-                cin >> startVertex;
-                
-                if (startVertex < 0 || startVertex >= (int)currentPlaylist.size()) {
-                    cout << "❌ Invalid index!" << endl;
-                    break;
-                }
-                
-                cout << "\n" << string(80, '=') << endl;
-                cout << "COMPARING ALL THREE ALGORITHMS" << endl;
-                cout << string(80, '=') << endl;
-                
-                Dijkstra dijkstra(graph);
-                dijkstra.printResults(startVertex);
-                
-                TSP tsp(graph);
-                tsp.printResults(startVertex);
-                
-                MST mst(graph);
-                mst.printResults(startVertex);
-                
-                cout << "\n" << string(80, '=') << endl;
-                cout << "COMPARISON COMPLETE" << endl;
-                cout << string(80, '=') << endl;
-                break;
-            }
-            
-            case 7: {
-                cout << "\n👋 Thank you for using Music Playlist Optimizer!" << endl;
-                if (graph != nullptr) delete graph;
-                return 0;
-            }
-            
-            default:
-                cout << "\n❌ Invalid choice! Please try again." << endl;
+    for (size_t i = 0; i < selectedSongs.size(); i++) {
+        if (selectedSongs[i].id == params.startSongId) {
+            startVertex = i;
+            break;
         }
     }
+
+    vector<int> resultOrder;
+    double totalCost = 0.0;
+
+    if (params.algorithm == "dijkstra") {
+        Dijkstra dijkstra(&graph);
+        resultOrder = dijkstra.getOptimizedPath(startVertex);
+        totalCost = dijkstra.getTotalDistance(resultOrder);
+    } else if (params.algorithm == "tsp") {
+        TSP tsp(&graph);
+        resultOrder = tsp.greedyTSP(startVertex);
+        totalCost = tsp.getTourCost(resultOrder);
+    } else if (params.algorithm == "mst") {
+        MST mst(&graph);
+        vector<Edge> edges = mst.primMST(startVertex);
+        resultOrder = mst.mstToPlaylist(startVertex);
+        totalCost = mst.getTotalWeight(edges);
+    }
     
+    ofstream file(outputFile);
+    if (!file.is_open()) {
+        cerr << "Error: Could not create output file!" << endl;
+        return;
+    }
+
+    file << "{" << endl;
+    file << "  \"algorithm\":\"" << params.algorithm << "\"," << endl;
+    file << "  \"songCount\":" << selectedSongs.size() << "," << endl;
+    file << "  \"totalCost\":" << fixed << setprecision(1) << totalCost << "," << endl;
+    file << "  \"avgCost\":" << fixed << setprecision(1) << (totalCost / (selectedSongs.size() - 1)) << "," << endl;
+    file << "  \"playlist\":[" << endl;
+
+    for (size_t i = 0; i < resultOrder.size(); i++) {
+        int idx = resultOrder[i];
+        Song song = selectedSongs[idx];
+        
+        double transitionCost = 0.0;
+        if (i > 0) {
+            int prevIdx = resultOrder[i - 1];
+            transitionCost = graph.getWeight(prevIdx, idx);
+        }
+
+        file << "    ";
+        writeSongJSON(file, song, transitionCost);
+        if (i < resultOrder.size() - 1) file << ",";
+        file << endl;
+    }
+
+    file << "  ]" << endl;
+    file << "}" << endl;
+
+    file.close();
+    cout << "✅ Results exported to " << outputFile << endl;
+    cout << "Total Cost: " << fixed << setprecision(1) << totalCost << endl;
+}
+
+int main(int argc, char* argv[]) {
+    cout << "\n🎵 Music Playlist Optimizer (C++ Backend) 🎵\n" << endl;
+    cout << "Total songs in database: " << songDatabase.size() << endl;
+
+    if (argc < 2) {
+        cout << "\nUsage:" << endl;
+        cout << "  " << argv[0] << " export          - Export all songs to JSON" << endl;
+        cout << "  " << argv[0] << " run <input>     - Run algorithm from input JSON" << endl;
+        return 1;
+    }
+
+    string command = argv[1];
+
+    if (command == "export") {
+        string outputFile = argc > 2 ? argv[2] : "songs.json";
+        exportAllSongsJSON(outputFile);
+    } 
+    else if (command == "run") {
+        if (argc < 3) {
+            cerr << "Error: Please provide input JSON file!" << endl;
+            return 1;
+        }
+
+        string inputFile = argv[2];
+        string outputFile = argc > 3 ? argv[3] : "output.json";
+
+        RequestParams params = readRequestJSON(inputFile);
+        runAlgorithmAndExport(params, outputFile);
+    }
+    else {
+        cerr << "Unknown command: " << command << endl;
+        return 1;
+    }
+
     return 0;
 }

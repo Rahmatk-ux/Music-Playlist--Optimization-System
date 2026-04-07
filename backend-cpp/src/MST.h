@@ -21,16 +21,12 @@ private:
 public:
     MST(Graph* g);
     
-    // Prim's MST Algorithm
     vector<Edge> primMST(int startVertex);
     
-    // Convert MST to playlist order (DFS traversal)
     vector<int> mstToPlaylist(int startVertex);
     
-    // Get total MST weight
     double getTotalWeight(vector<Edge> edges);
     
-    // Print MST results
     void printResults(int startVertex);
 };
 

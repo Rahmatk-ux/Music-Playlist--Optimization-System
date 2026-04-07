@@ -14,13 +14,10 @@ private:
 public:
     TSP(Graph* g);
     
-    // Greedy TSP using Nearest Neighbor heuristic
     vector<int> greedyTSP(int startVertex);
     
-    // Get total tour cost
     double getTourCost(vector<int> tour);
     
-    // Print tour results
     void printResults(int startVertex);
 };
 

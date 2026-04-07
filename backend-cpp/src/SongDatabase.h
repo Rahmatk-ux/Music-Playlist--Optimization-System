@@ -18,7 +18,7 @@ struct Song {
     int year;
 };
 
-// Global song database with 50 songs
 extern vector<Song> songDatabase; 
+
 
 #endif

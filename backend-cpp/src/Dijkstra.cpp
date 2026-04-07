@@ -8,13 +8,11 @@ using namespace std;
 
 const double INF = numeric_limits<double>::infinity();
 
-// Constructor
 Dijkstra::Dijkstra(Graph* g) {
     this->graph = g;
     this->numVertices = g->getNumVertices();
 }
 
-// Find vertex with minimum distance among unvisited vertices
 int Dijkstra::findMinDistance() {
     double minDist = INF;
     int minVertex = -1;
@@ -29,24 +27,20 @@ int Dijkstra::findMinDistance() {
     return minVertex;
 }
 
-// Run Dijkstra's algorithm from start vertex
 void Dijkstra::run(int startVertex) {
-    // Initialize distances and visited arrays
     distances.assign(numVertices, INF);
     visited.assign(numVertices, false);
     previous.assign(numVertices, -1);
     
     distances[startVertex] = 0.0;
     
-    // Find shortest path for all vertices
     for (int i = 0; i < numVertices; i++) {
         int u = findMinDistance();
         
-        if (u == -1) break; // All reachable vertices visited
+        if (u == -1) break; 
         
         visited[u] = true;
         
-        // Update distances to neighbors
         for (int v = 0; v < numVertices; v++) {
             double weight = graph->getWeight(u, v);
             
@@ -62,42 +56,23 @@ void Dijkstra::run(int startVertex) {
     }
 }
 
-// Get optimized path - creates path visiting all vertices
-// by repeatedly choosing nearest unvisited vertex
 vector<int> Dijkstra::getOptimizedPath(int startVertex) {
+    // Step 1: Run real Dijkstra
+    run(startVertex);
+    
+    vector<pair<double, int>> distIndexPairs;
+    for (int v = 0; v < numVertices; v++) {
+        distIndexPairs.push_back({distances[v], v});
+    }
+    sort(distIndexPairs.begin(), distIndexPairs.end());
     vector<int> path;
-    vector<bool> inPath(numVertices, false);
-    
-    int current = startVertex;
-    path.push_back(current);
-    inPath[current] = true;
-    
-    // Build path by always choosing nearest unvisited neighbor
-    for (int i = 1; i < numVertices; i++) {
-        double minWeight = INF;
-        int nextVertex = -1;
-        
-        for (int v = 0; v < numVertices; v++) {
-            if (!inPath[v]) {
-                double weight = graph->getWeight(current, v);
-                if (weight < minWeight) {
-                    minWeight = weight;
-                    nextVertex = v;
-                }
-            }
-        }
-        
-        if (nextVertex != -1) {
-            path.push_back(nextVertex);
-            inPath[nextVertex] = true;
-            current = nextVertex;
-        }
+    for (auto& p : distIndexPairs) {
+        path.push_back(p.second);
     }
     
     return path;
 }
 
-// Get total distance of a path
 double Dijkstra::getTotalDistance(vector<int> path) {
     double totalDist = 0.0;
     
@@ -108,7 +83,6 @@ double Dijkstra::getTotalDistance(vector<int> path) {
     return totalDist;
 }
 
-// Print results
 void Dijkstra::printResults(int startVertex) {
     cout << "\n=== Dijkstra's Algorithm Results ===" << endl;
     cout << "Start Vertex: " << startVertex 
@@ -134,5 +108,5 @@ void Dijkstra::printResults(int startVertex) {
     
     cout << "\nTotal Transition Cost: " << fixed << setprecision(2) << totalDist << endl;
     cout << "Average Cost per Transition: " 
-         << fixed << setprecision(2) << (totalDist / (path.size() - 1)) << endl;
+         << fixed << setprecision(2) << (totalDist / (path.size() -1)) << endl;
 }
