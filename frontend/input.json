@@ -1,1 +1,1 @@
-{"algorithm":"mst","songIds":[29,43,13,39,47,23,44,34],"startSongId":29,"endSongId":34}
+{"algorithm":"kruskal","songIds":[16,1,25,35,22,14,34,44,42,40],"startSongId":16,"endSongId":40}
